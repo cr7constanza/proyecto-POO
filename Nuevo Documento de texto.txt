@@ -1,0 +1,315 @@
+# Clase que representa un vehículoimport tkinter as tk
+from tkinter import messagebox, StringVar
+import json
+import os
+import tkinter as tk
+from tkinter import messagebox, StringVar
+# Nombre del archivo JSON
+
+ARCHIVO_JSON = "guardado.json" 
+
+
+# Clase que representa un usuario
+class Usuario:
+    def __init__(self, nombre, correo, clave, es_admin=False):
+        self.nombre = nombre
+        self.correo = correo
+        self.clave = clave
+        self.es_admin = es_admin
+
+
+def cargar_datos():
+    if os.path.exists(ARCHIVO_JSON):
+        with open(ARCHIVO_JSON, "r", encoding="utf-8") as archivo:
+            return json.load(archivo)
+    return {"usuarios": {"admin": {"nombre": "admin", "correo": "admin@rentauto.com", "clave": "12345", "es_admin": True}}, "vehiculos": []}
+
+def guardar_datos(datos):
+    with open(ARCHIVO_JSON, "w", encoding="utf-8") as archivo:
+        json.dump(datos, archivo, indent=4)
+
+datos = cargar_datos()
+
+class InterfazUsuario:
+    def __init__(self, root):
+        self.root = root
+        self.usuario_actual = None
+        self.canasta = Canasta()  # Asegúrate de definir la clase Canasta correctamente
+
+        self.inicializar_interfaz()
+
+    
+    def limpiar_ventana(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+    
+    def inicializar_interfaz(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Sistema de autos", font=("Arial", 16)).pack(pady=10)
+        tk.Button(self.root, text="Iniciar sesión", command=self.mostrar_login).pack(pady=5)
+        tk.Button(self.root, text="Registrarse", command=self.mostrar_registro).pack(pady=5)
+    
+    def mostrar_login(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Inicio de sesión", font=("Arial", 14)).pack(pady=10)
+        usuario_var, clave_var = StringVar(), StringVar()
+        tk.Label(self.root, text="Usuario:").pack()
+        tk.Entry(self.root, textvariable=usuario_var).pack()
+        tk.Label(self.root, text="Contraseña:").pack()
+        tk.Entry(self.root, textvariable=clave_var, show="*").pack()
+        
+        def verificar_login():
+            usuario = usuario_var.get()
+            clave = clave_var.get()
+            if usuario in datos["usuarios"] and datos["usuarios"][usuario]["clave"] == clave:
+                self.usuario_actual = datos["usuarios"][usuario]
+                messagebox.showinfo("Éxito", f"Bienvenido, {usuario}!")
+                self.mostrar_pantalla_principal()
+            else:
+                messagebox.showerror("Error", "Usuario o contraseña incorrectos.")
+        
+        tk.Button(self.root, text="Iniciar sesión", command=verificar_login).pack(pady=10)
+        tk.Button(self.root, text="Cancelar", command=self.inicializar_interfaz).pack(pady=5)
+    
+    def mostrar_registro(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Registro", font=("Arial", 14)).pack(pady=10)
+        usuario_var, clave_var, correo_var = StringVar(), StringVar(), StringVar()
+        tk.Label(self.root, text="Usuario:").pack()
+        tk.Entry(self.root, textvariable=usuario_var).pack()
+        tk.Label(self.root, text="Contraseña:").pack()
+        tk.Entry(self.root, textvariable=clave_var, show="*").pack()
+        tk.Label(self.root, text="Correo:").pack()
+        tk.Entry(self.root, textvariable=correo_var).pack()
+        
+        def registrar_usuario():
+            usuario, clave, correo = usuario_var.get(), clave_var.get(), correo_var.get()
+            if usuario in datos["usuarios"]:
+                messagebox.showerror("Error", "El usuario ya existe.")
+            else:
+                datos["usuarios"][usuario] = {"nombre": usuario, "correo": correo, "clave": clave, "es_admin": False}
+                guardar_datos(datos)
+                messagebox.showinfo("Éxito", "Usuario registrado.")
+                self.inicializar_interfaz()
+    
+            
+        tk.Button(self.root, text="Registrar", command=registrar_usuario).pack(pady=10)
+        tk.Button(self.root, text="Cancelar", command=self.inicializar_interfaz).pack(pady=5)
+    
+    def ver_usuarios(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Usuarios Registrados", font=("Arial", 14)).pack(pady=10)
+
+        for usuario in datos["usuarios"]:
+            frame = tk.Frame(self.root, relief="solid", borderwidth=1)
+            frame.pack(pady=5, padx=10, fill="x")
+            tk.Label(frame, text=f"{usuario['nombre']} - {'Admin' if usuario['es_admin'] else 'Usuario'}").pack(side="left", padx=10)
+
+        tk.Button(self.root, text="Volver", command=self.mostrar_pantalla_principal).pack(pady=10)
+
+    
+    def mostrar_pantalla_principal(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text=f"Bienvenido {self.usuario_actual['nombre']}", font=("Arial", 16)).pack(pady=10)
+
+        tk.Button(self.root, text="Ver autos", command=self.ver_autos).pack(pady=5)  # Ver autos
+        tk.Button(self.root, text="Ver canasta", command=self.mostrar_canasta).pack(pady=5)
+        tk.Button(self.root, text="Cerrar sesión", command=self.inicializar_interfaz).pack(pady=5)
+
+        if self.usuario_actual["es_admin"]:
+            tk.Label(self.root, text="Opciones de Administrador:", font=("Arial", 14)).pack(pady=10)            
+            tk.Button(self.root, text="Ver todos los usuarios", command=self.ver_usuarios).pack(pady=5)
+            tk.Button(self.root, text="Gestionar Vehículos", command=self.gestionar_vehiculos).pack(pady=5)
+    
+    def ver_autos(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Autos Disponibles", font=("Arial", 14)).pack(pady=10)
+
+        for vehiculo in datos["vehiculos"]:
+            frame = tk.Frame(self.root, relief="solid", borderwidth=1)
+            frame.pack(pady=5, padx=10, fill="x")
+            tk.Label(frame, text=f"{vehiculo['nombre']} - ${vehiculo['precio']}").pack(side="left", padx=10)
+            tk.Button(frame, text="Agregar a Canasta", command=lambda v=vehiculo: self.agregar_a_canasta(v)).pack(side="right")
+
+        tk.Button(self.root, text="Volver", command=self.mostrar_pantalla_principal).pack(pady=10)
+
+    def agregar_a_canasta(self, vehiculo):
+        self.canasta.agregar(vehiculo)
+        messagebox.showinfo("Éxito", f"El auto {vehiculo['nombre']} ha sido agregado a la canasta.")
+    
+    def mostrar_canasta(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Canasta de Compras", font=("Arial", 14)).pack(pady=10)
+
+        if not self.canasta.vehiculos:
+            tk.Label(self.root, text="Tu canasta está vacía.", font=("Arial", 12)).pack(pady=10)
+        else:
+            for vehiculo in self.canasta.vehiculos:
+                frame = tk.Frame(self.root, relief="solid", borderwidth=1)
+                frame.pack(pady=5, padx=10, fill="x")
+                tk.Label(frame, text=f"{vehiculo['nombre']} - ${vehiculo['precio']}").pack(side="left", padx=10)
+
+        tk.Button(self.root, text="Volver", command=self.mostrar_pantalla_principal).pack(pady=10)
+
+
+    def gestionar_vehiculos(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Gestión de Vehículos", font=("Arial", 14)).pack(pady=10)
+        for vehiculo in datos["vehiculos"]:
+            frame = tk.Frame(self.root, relief="solid", borderwidth=1)
+            frame.pack(pady=5, padx=10, fill="x")
+            tk.Label(frame, text=f"{vehiculo['nombre']} - ${vehiculo['precio']}").pack(side="left", padx=10)
+            tk.Button(frame, text="Eliminar", command=lambda v=vehiculo: self.eliminar_vehiculo(v)).pack(side="right")
+        tk.Button(self.root, text="Agregar Vehículo", command=self.agregar_vehiculo).pack(pady=10)
+        tk.Button(self.root, text="Volver", command=self.mostrar_pantalla_principal).pack(pady=10)
+    
+    def agregar_vehiculo(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Agregar Vehículo", font=("Arial", 14)).pack(pady=10)
+        nombre_var, precio_var = StringVar(), StringVar()
+        tk.Label(self.root, text="Nombre:").pack()
+        tk.Entry(self.root, textvariable=nombre_var).pack()
+        tk.Label(self.root, text="Precio:").pack()
+        tk.Entry(self.root, textvariable=precio_var).pack()
+        
+        def guardar_vehiculo():
+            nombre, precio = nombre_var.get(), precio_var.get()
+            if nombre and precio.isdigit():
+                datos["vehiculos"].append({"nombre": nombre, "precio": int(precio)})
+                guardar_datos(datos)
+                self.gestionar_vehiculos()
+            else:
+                messagebox.showerror("Error", "Datos inválidos.")
+        
+        tk.Button(self.root, text="Guardar", command=guardar_vehiculo).pack(pady=10)
+        tk.Button(self.root, text="Cancelar", command=self.gestionar_vehiculos).pack(pady=5)
+    
+    def eliminar_vehiculo(self, vehiculo):
+        datos["vehiculos"].remove(vehiculo)
+        guardar_datos(datos)
+        self.gestionar_vehiculos()
+    
+    def editar_vehiculo(self, vehiculo):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Editar Vehículo", font=("Arial", 14)).pack(pady=10)
+
+        nombre_var, precio_var = StringVar(value=vehiculo['nombre']), StringVar(value=str(vehiculo['precio']))
+        tk.Label(self.root, text="Nombre:").pack()
+        tk.Entry(self.root, textvariable=nombre_var).pack()
+        tk.Label(self.root, text="Precio:").pack()
+        tk.Entry(self.root, textvariable=precio_var).pack()
+
+        def guardar_ediciones():
+            vehiculo['nombre'] = nombre_var.get()
+            vehiculo['precio'] = int(precio_var.get())
+            self.guardar_datos()
+            self.gestionar_vehiculos()
+
+        tk.Button(self.root, text="Guardar", command=guardar_ediciones).pack(pady=10)
+        tk.Button(self.root, text="Cancelar", command=self.gestionar_vehiculos).pack(pady=5)
+
+
+class Vehiculo:
+    def __init__(self, nombre, precio, descripcion):
+        self.nombre = nombre
+        self.precio = precio
+        self.descripcion = descripcion
+
+class Canasta:
+    def __init__(self):
+        self.vehiculos = []
+
+    def agregar(self, vehiculo):
+        self.vehiculos.append(vehiculo)
+
+    def eliminar(self, vehiculo):
+        if vehiculo in self.vehiculos:
+            self.vehiculos.remove(vehiculo)
+
+# Clase principal de la aplicación
+class Aplicacion:
+    def __init__(self, root):
+        self.root = root
+        self.usuarios = {"admin": Usuario("admin", "admin@rentauto.com", "12345", es_admin=True)}
+        self.usuario_actual = None
+        self.vehiculos = []
+        self.vendedores = []
+        self.tiendas = []
+
+    def limpiar_ventana(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+    def mostrar_login(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Inicio de Sesión", font=("Arial", 14)).pack(pady=10)
+        usuario_var = StringVar()
+        clave_var = StringVar()
+        
+        tk.Label(self.root, text="Usuario:").pack()
+        tk.Entry(self.root, textvariable=usuario_var).pack()
+        tk.Label(self.root, text="Contraseña:").pack()
+        tk.Entry(self.root, textvariable=clave_var, show="*").pack()
+        
+        def verificar_login():
+            usuario = usuario_var.get()
+            clave = clave_var.get()
+            if usuario in self.usuarios and self.usuarios[usuario].clave == clave:
+                self.usuario_actual = self.usuarios[usuario]
+                messagebox.showinfo("Éxito", f"Bienvenido, {usuario}!")
+                self.mostrar_pantalla_principal()
+            else:
+                messagebox.showerror("Error", "Credenciales incorrectas.")
+
+        tk.Button(self.root, text="Iniciar sesión", command=verificar_login).pack(pady=10)
+
+    def mostrar_pantalla_principal(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text=f"Bienvenido {self.usuario_actual.nombre}", font=("Arial", 16)).pack(pady=10)
+        
+        if self.usuario_actual.es_admin:
+            tk.Label(self.root, text="Opciones de Administrador:", font=("Arial", 14)).pack(pady=10)
+            tk.Button(self.root, text="Gestión de Vehículos", command=self.gestionar_vehiculos).pack(pady=5)
+            tk.Button(self.root, text="Gestión de Vendedores", command=self.gestionar_vendedores).pack(pady=5)
+            tk.Button(self.root, text="Gestión de Tiendas", command=self.gestionar_tiendas).pack(pady=5)
+
+    def gestionar_vehiculos(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Gestión de Vehículos", font=("Arial", 14)).pack(pady=10)
+        tk.Button(self.root, text="Agregar Vehículo", command=self.agregar_vehiculo).pack(pady=5)
+        tk.Button(self.root, text="Volver", command=self.mostrar_pantalla_principal).pack(pady=5)
+
+    def agregar_vehiculo(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Agregar Vehículo", font=("Arial", 14)).pack(pady=10)
+        nombre_var = StringVar()
+        precio_var = StringVar()
+        descripcion_var = StringVar()
+        
+        tk.Label(self.root, text="Nombre:").pack()
+        tk.Entry(self.root, textvariable=nombre_var).pack()
+        tk.Label(self.root, text="Precio:").pack()
+        tk.Entry(self.root, textvariable=precio_var).pack()
+        tk.Label(self.root, text="Descripción:").pack()
+        tk.Entry(self.root, textvariable=descripcion_var).pack()
+        
+        def guardar_vehiculo():
+            nombre = nombre_var.get()
+            precio = precio_var.get()
+            descripcion = descripcion_var.get()
+            if nombre and precio.isdigit() and descripcion:
+                self.vehiculos.append(Vehiculo(nombre, int(precio), descripcion))
+                messagebox.showinfo("Éxito", "Vehículo agregado correctamente.")
+                self.gestionar_vehiculos()
+            else:
+                messagebox.showerror("Error", "Datos inválidos.")
+        
+        tk.Button(self.root, text="Guardar", command=guardar_vehiculo).pack(pady=10)
+        tk.Button(self.root, text="Cancelar", command=self.gestionar_vehiculos).pack(pady=5)
+        
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("RentAuto")
+    root.geometry("400x300")
+    InterfazUsuario(root)
+    root.mainloop()
