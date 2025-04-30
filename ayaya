@@ -1,0 +1,911 @@
+# Importar las librerías necesarias para la interfaz gráfica y manipulación de datos
+
+import tkinter as tk
+from tkinter import messagebox, StringVar
+import json
+import os
+import re
+# Definición del nombre del archivo JSON donde se almacenarán los datos
+
+ARCHIVO_JSON = "guardado.json"
+# Función para cargar los datos desde el archivo JSON, si existe
+
+def cargar_datos():
+    # Verifica si el archivo existe
+
+    if os.path.exists(ARCHIVO_JSON):
+        with open(ARCHIVO_JSON, "r", encoding="utf-8") as archivo:
+            # Carga y devuelve los datos del archivo
+
+            return json.load(archivo)
+    else:
+        # Si no existe el archivo, devuelve un conjunto de datos por defecto
+
+        return {
+            "usuarios": {
+                "admin": {
+                    "nombre": "admin",
+                    "correo": "admin@rentauto.com",
+                    "clave": "12345",
+                    "es_admin": True
+                }
+            },
+            "tiendas": {
+                "tienda1": {
+                    "nombre": "Tienda Central",
+                    "direccion": "Calle Falsa 123, Osorno",
+                    "vehiculos": [
+                        {
+                            "marca": "Ford",
+                            "modelo": "Focus",
+                            "año": 2020,
+                            "transmision": "Automática",
+                            "combustible": "Gasolina",
+                            "cilindrada": "1.6L",
+                            "kilometraje": "15000 km",
+                            "puertas": 4,
+                            "capacidad": 5,
+                            "carroceria": "Sedán",
+                            "color": "Rojo",
+                            "precio": 12000
+                        }
+                    ]
+                }
+            }
+        }
+
+
+# Función para guardar los datos en el archivo JSON
+
+def guardar_datos(datos):
+    # Abre el archivo JSON para escritura y guarda los datos con un formato legible
+
+    with open(ARCHIVO_JSON, "w", encoding="utf-8") as archivo:
+        json.dump(datos, archivo, indent=4)
+
+# Cargar datos una vez al principio del programa
+datos = cargar_datos()
+
+# Canasta de compras
+class Canasta:
+    def __init__(self):
+        # Inicializa la canasta vacía
+
+        self.vehiculos = []
+    # Método para agregar un vehículo a la canasta
+
+    def agregar(self, vehiculo):
+        self.vehiculos.append(vehiculo)
+
+# Clase principal para la interfaz de usuario
+
+class InterfazUsuario:
+    def __init__(self, root):
+        self.root = root  # La ventana principal
+        self.usuario_actual = None  # Usuario actual
+        self.canasta = Canasta()  # Instancia de la canasta de compras
+        self.tienda_seleccionada = None  # Tienda seleccionada
+        self.inicializar_interfaz()  # Llamar al método para inicializar la interfaz
+
+    # Función para limpiar la ventana de la interfaz
+    def limpiar_ventana(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()  # Elimina todos los widgets actuales
+
+    # Función para inicializar la interfaz principal
+    def inicializar_interfaz(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Sistema RentAuto", font=("Arial", 16)).pack(pady=10)  # Título principal
+        # Botón para iniciar sesión
+        tk.Button(self.root, text="Iniciar sesión", command=self.mostrar_login).pack(pady=5)
+        # Botón para registrarse
+        tk.Button(self.root, text="Registrarse", command=self.mostrar_registro).pack(pady=5)
+
+    # Función para mostrar la pantalla de inicio de sesión
+    def mostrar_login(self):
+        self.limpiar_ventana()  # Limpiar la ventana actual
+        tk.Label(self.root, text="Inicio de sesión", font=("Arial", 14)).pack(pady=10)  # Título de la sección
+
+        # Variables para los campos de usuario y clave
+        usuario_var = tk.StringVar()
+        clave_var = tk.StringVar()
+
+        # Campo para ingresar el usuario
+        fila_usuario = tk.Frame(self.root)
+        fila_usuario.pack(pady=5)
+        tk.Label(fila_usuario, text="Usuario:", width=15, anchor="w").pack(side="left")
+        tk.Entry(fila_usuario, textvariable=usuario_var, width=40).pack(side="left", fill="x")
+
+        # Campo para ingresar la contraseña
+        fila_clave = tk.Frame(self.root)
+        fila_clave.pack(pady=5)
+        tk.Label(fila_clave, text="Contraseña:", width=15, anchor="w").pack(side="left")
+        tk.Entry(fila_clave, textvariable=clave_var, show="*", width=40).pack(side="left", fill="x")
+
+        # Función para verificar el inicio de sesión
+        def verificar_login():
+            usuario = usuario_var.get()
+            clave = clave_var.get()
+            # Verifica si las credenciales son correctas
+            if usuario in datos["usuarios"] and datos["usuarios"][usuario]["clave"] == clave:
+                self.usuario_actual = datos["usuarios"][usuario]  # Establece el usuario actual
+                self.mostrar_pantalla_principal()  # Muestra la pantalla principal
+            else:
+                # Muestra un mensaje de error si las credenciales no son correctas
+                messagebox.showerror("Error", "usuario o contraseña incorrectos.")
+
+        # Botones para iniciar sesión o volver
+        tk.Button(self.root, text="Iniciar sesión", command=verificar_login).pack(pady=10)
+        tk.Button(self.root, text="Volver", command=self.inicializar_interfaz).pack()
+
+# Función para mostrar la pantalla de registro
+    def mostrar_registro(self):
+        self.limpiar_ventana()  # Limpiar la ventana actual
+        tk.Label(self.root, text="Registro de usuario", font=("Arial", 14)).pack(pady=10)  # Título de la sección
+
+        # Variables para los campos de registro
+        usuario_var = tk.StringVar()
+        clave_var = tk.StringVar()
+        correo_var = tk.StringVar()
+
+        # Campo para ingresar el usuario
+        fila_usuario = tk.Frame(self.root)
+        fila_usuario.pack(pady=5)
+        tk.Label(fila_usuario, text="Usuario:", width=15, anchor="w").pack(side="left")
+        tk.Entry(fila_usuario, textvariable=usuario_var, width=40).pack(side="left", fill="x")
+
+        # Campo para ingresar la contraseña
+        fila_clave = tk.Frame(self.root)
+        fila_clave.pack(pady=5)
+        tk.Label(fila_clave, text="Contraseña:", width=15, anchor="w").pack(side="left")
+        tk.Entry(fila_clave, textvariable=clave_var, show="*", width=40).pack(side="left", fill="x")
+
+        # Campo para ingresar el correo
+        fila_correo = tk.Frame(self.root)
+        fila_correo.pack(pady=5)
+        tk.Label(fila_correo, text="Correo:", width=15, anchor="w").pack(side="left")
+        tk.Entry(fila_correo, textvariable=correo_var, width=40).pack(side="left", fill="x")
+
+        # Función para validar correo
+        def es_correo_valido(correo):
+            patron = r"^[^@]+@[^@]+\.(cl|com)$"
+            return re.match(patron, correo) is not None
+
+        # Función para registrar un nuevo usuario
+        def registrar_usuario():
+            usuario = usuario_var.get().strip().lower()  # Usuario en minúsculas
+            clave = clave_var.get().strip()  # Contraseña
+            correo = correo_var.get().strip()  # Correo
+
+            # Verifica que todos los campos estén llenos
+            if not usuario or not clave or not correo:
+                messagebox.showerror("Error", "Por favor complete todos los campos.")
+                return
+
+            # Verifica si el correo es válido
+            if not es_correo_valido(correo):
+                messagebox.showerror("Error", "Por favor ingresa un correo válido (formato: usuario@dominio.cl/com).")
+                return
+
+            # Verifica si el usuario ya existe
+            if usuario in datos["usuarios"]:
+                messagebox.showerror("Error", "El usuario ya está registrado.")
+                return
+
+            # Agrega el nuevo usuario a los datos
+            datos["usuarios"][usuario] = {
+                "nombre": usuario,
+                "correo": correo,
+                "clave": clave,
+                "es_admin": False
+            }
+
+            guardar_datos(datos)  # Guarda los datos actualizados
+            messagebox.showinfo("Registro exitoso", "Usuario registrado correctamente.")  # Muestra mensaje de éxito
+            self.inicializar_interfaz()  # Vuelve a la pantalla principal
+
+        # Botones para registrarse o volver
+        tk.Button(self.root, text="Registrarse", command=registrar_usuario).pack(pady=10)
+        tk.Button(self.root, text="Volver", command=self.inicializar_interfaz).pack()
+
+
+    # Método que muestra la pantalla principal después del login
+    def mostrar_pantalla_principal(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text=f"Bienvenido {self.usuario_actual['nombre']}", font=("Arial", 16)).pack(pady=10)
+        tk.Button(self.root, text="Ver autos", command=self.ver_autos).pack(pady=5)
+        tk.Button(self.root, text="Ver canasta", command=self.mostrar_canasta).pack(pady=5)
+        tk.Button(self.root, text="Cerrar sesión", command=self.inicializar_interfaz).pack(pady=5)
+
+        # Si el usuario es un administrador, mostrar opciones adicionales
+        if self.usuario_actual["es_admin"]:
+            tk.Label(self.root, text="Opciones de administrador", font=("Arial", 14)).pack(pady=10)
+            tk.Button(self.root, text="Gestionar vehículos", command=self.gestionar_vehiculos).pack(pady=5)
+            tk.Button(self.root, text="Ver todos los usuarios", command=self.ver_usuarios).pack(pady=5)
+            tk.Button(self.root, text="Gestionar tiendas", command=self.gestionar_tiendas).pack(pady=5)  # NUEVO
+
+    # Método que gestiona las tiendas (para el administrador)
+    def gestionar_tiendas(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Gestión de tiendas", font=("Arial", 16)).pack(pady=10)
+
+        # Mostrar todas las tiendas
+        for nombre_tienda, tienda in datos["tiendas"].items():
+            frame = tk.Frame(self.root, relief="solid", borderwidth=1)
+            frame.pack(pady=5, padx=10, fill="x")
+            tk.Label(frame, text=nombre_tienda, font=("Arial", 12)).pack(side="left", padx=10)
+            
+            # Botones para editar y eliminar la tienda
+            tk.Button(frame, text="Editar", command=lambda n=nombre_tienda: self.editar_tienda(n)).pack(side="right")
+            tk.Button(frame, text="Eliminar", command=lambda n=nombre_tienda: self.eliminar_tienda(n)).pack(side="right")
+
+        # Botón para agregar una nueva tienda
+        tk.Button(self.root, text="Agregar nueva tienda", command=self.agregar_tienda).pack(pady=10)
+        tk.Button(self.root, text="Volver", command=self.mostrar_pantalla_principal).pack(pady=5)
+
+    # Método para agregar una nueva tienda
+    def agregar_tienda(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Agregar nueva tienda", font=("Arial", 14)).pack(pady=10)
+
+        # Variables para los campos de entrada
+        nombre_var = tk.StringVar()
+        direccion_var = tk.StringVar()
+        telefono_var = tk.StringVar()
+
+        # Crear campos de entrada para nombre, dirección y teléfono
+        fila_nombre = tk.Frame(self.root)
+        fila_nombre.pack(pady=5)
+        tk.Label(fila_nombre, text="Nombre:", width=15, anchor="w").pack(side="left")
+        tk.Entry(fila_nombre, textvariable=nombre_var, width=40).pack(side="left", fill="x")
+
+        fila_direccion = tk.Frame(self.root)
+        fila_direccion.pack(pady=5)
+        tk.Label(fila_direccion, text="Ubicación:", width=15, anchor="w").pack(side="left")
+        tk.Entry(fila_direccion, textvariable=direccion_var, width=40).pack(side="left", fill="x")
+
+        fila_telefono = tk.Frame(self.root)
+        fila_telefono.pack(pady=5)
+        tk.Label(fila_telefono, text="Teléfono:", width=15, anchor="w").pack(side="left")
+        tk.Entry(fila_telefono, textvariable=telefono_var, width=40).pack(side="left", fill="x")
+
+        # Función que guarda la nueva tienda
+        def guardar():
+            nombre = nombre_var.get().strip().lower()
+            direccion = direccion_var.get().strip()
+            telefono = telefono_var.get().strip()
+
+            if not nombre or not direccion or not telefono:
+                messagebox.showerror("Error", "todos los campos son obligatorios.")
+                return
+
+            if nombre in datos["tiendas"]:
+                messagebox.showerror("Error", "ya existe una tienda con ese nombre.")
+                return
+
+            # Guardar la nueva tienda
+            datos["tiendas"][nombre] = {
+                "nombre": nombre,
+                "direccion": direccion,
+                "telefono": telefono,
+                "vehiculos": []
+            }
+            guardar_datos(datos)
+            self.gestionar_tiendas()
+
+        tk.Button(self.root, text="Guardar tienda", command=guardar).pack(pady=5)
+        tk.Button(self.root, text="Volver", command=self.gestionar_tiendas).pack(pady=5)
+
+    # Método para editar una tienda existente
+    def editar_tienda(self, nombre_actual):
+        self.limpiar_ventana()
+        tk.Label(self.root, text=f"Editar tienda: {nombre_actual}", font=("Arial", 14)).pack(pady=10)
+
+        # Obtener la tienda actual
+        tienda = datos["tiendas"].get(nombre_actual, {})
+        
+        # Obtener valores actuales o valores por defecto
+        nombre_visible = tienda.get("nombre", nombre_actual)
+        direccion_actual = tienda.get("direccion", "")
+        telefono_actual = tienda.get("telefono", "")
+
+        # Variables para los campos de edición
+        nuevo_nombre_var = tk.StringVar(value=nombre_actual)
+        direccion_var = tk.StringVar(value=direccion_actual)
+        telefono_var = tk.StringVar(value=telefono_actual)
+
+        # Crear campos de entrada para editar el nombre, dirección y teléfono
+        fila_nombre = tk.Frame(self.root)
+        fila_nombre.pack(pady=5)
+        tk.Label(fila_nombre, text="Nombre:", width=15, anchor="w").pack(side="left")
+        tk.Entry(fila_nombre, textvariable=nuevo_nombre_var, width=40).pack(side="left", fill="x")
+
+        fila_direccion = tk.Frame(self.root)
+        fila_direccion.pack(pady=5)
+        tk.Label(fila_direccion, text="Ubicación:", width=15, anchor="w").pack(side="left")
+        tk.Entry(fila_direccion, textvariable=direccion_var, width=40).pack(side="left", fill="x")
+
+        fila_telefono = tk.Frame(self.root)
+        fila_telefono.pack(pady=5)
+        tk.Label(fila_telefono, text="Teléfono:", width=15, anchor="w").pack(side="left")
+        tk.Entry(fila_telefono, textvariable=telefono_var, width=40).pack(side="left", fill="x")
+
+        # Función que guarda los cambios
+        def guardar():
+            nuevo_nombre = nuevo_nombre_var.get().strip().lower()
+            nueva_direccion = direccion_var.get().strip()
+            nuevo_telefono = telefono_var.get().strip()
+
+            if not nuevo_nombre:
+                messagebox.showerror("Error", "el nombre no puede estar vacío.")
+                return
+            if nuevo_nombre != nombre_actual and nuevo_nombre in datos["tiendas"]:
+                messagebox.showerror("Error", "ya existe una tienda con ese nombre.")
+                return
+
+            # Actualizar tienda con los nuevos datos
+            datos["tiendas"][nuevo_nombre] = datos["tiendas"].pop(nombre_actual)
+            datos["tiendas"][nuevo_nombre]["nombre"] = nuevo_nombre
+            datos["tiendas"][nuevo_nombre]["direccion"] = nueva_direccion
+            datos["tiendas"][nuevo_nombre]["telefono"] = nuevo_telefono
+
+            guardar_datos(datos)
+            self.gestionar_tiendas()
+
+        tk.Button(self.root, text="Guardar cambios", command=guardar).pack(pady=5)
+        tk.Button(self.root, text="Volver", command=self.gestionar_tiendas).pack(pady=5)
+
+    def eliminar_tienda(self, nombre):
+        # Limpiar la ventana antes de mostrar la nueva interfaz
+        self.limpiar_ventana()
+        
+        # Mostrar mensaje de confirmación antes de eliminar una tienda
+        tk.Label(self.root, text=f"¿Estás seguro que deseas eliminar la tienda '{nombre}'?").pack(pady=10)
+
+        # Función que confirma la eliminación de la tienda
+        def confirmar():
+            # Verifica si la tienda existe en los datos
+            if nombre in datos["tiendas"]:
+                # Elimina la tienda del diccionario de tiendas
+                datos["tiendas"].pop(nombre, None)
+                # Guarda los cambios realizados en el archivo de datos
+                guardar_datos(datos)  
+                # Vuelve a cargar la pantalla de gestión de tiendas
+                self.gestionar_tiendas()  
+            else:
+                # Si la tienda no está en la lista, muestra un mensaje de error
+                tk.Label(self.root, text="La tienda no se encuentra en la lista.").pack(pady=10)
+
+        # Botones de confirmación y cancelación
+        tk.Button(self.root, text="Confirmar", command=confirmar).pack(pady=10)
+        tk.Button(self.root, text="Cancelar", command=self.gestionar_tiendas).pack(pady=5)
+
+
+    def ver_informacion_tienda(self):
+        tienda = datos["tiendas"][self.tienda_actual]
+
+        info = f"Nombre: {tienda['nombre']}\n"
+        info += f"Dirección: {tienda['direccion']}\n"
+
+        # Muestra la información de la tienda en una ventana emergente
+        tk.messagebox.showinfo("Información de tienda", info)
+
+    def filtrar_por_tienda(self, tienda_id):
+        self.limpiar_ventana()
+
+        # Crear una barra de acción con botones para elegir la tienda
+        barra_accion = tk.Frame(self.root, bg="#d9d9d9", height=50)
+        barra_accion.pack(fill="x")
+
+        # Botones para filtrar por cada tienda disponible 
+        tk.Button(barra_accion, text="Tienda 1", command=lambda: self.filtrar_por_tienda("tienda1")).pack(side="left", padx=10, pady=10)
+        tk.Button(barra_accion, text="Tienda 2", command=lambda: self.filtrar_por_tienda("tienda2")).pack(side="left", padx=10, pady=10)
+        tk.Button(barra_accion, text="Tienda 3", command=lambda: self.filtrar_por_tienda("tienda3")).pack(side="left", padx=10, pady=10)
+
+        # Obtener la tienda seleccionada y mostrar sus vehículo
+        tienda = datos["tiendas"][tienda_id]
+        # Título que indica los autos de la tienda seleccionada
+        tk.Label(self.root, text=f"Autos de {tienda['nombre']}", font=("Arial", 16)).pack(pady=20)
+        # Recorrer los vehículos de la tienda y mostrarlos
+        for vehiculo in tienda["vehiculos"]:
+            frame = tk.Frame(self.root, relief="solid", borderwidth=1)
+            frame.pack(pady=5, padx=10, fill="x")
+            # Muestra la información básica del vehículo (marca, modelo, precio)
+
+            tk.Label(frame, text=f"{vehiculo['marca']} {vehiculo['modelo']} - ${vehiculo['precio']}").pack(side="left", padx=10)
+            tk.Button(frame, text="Descripción", command=lambda v=vehiculo: self.mostrar_descripcion(v)).pack(side="right")
+            tk.Button(frame, text="Agregar a canasta", command=lambda v=vehiculo: self.agregar_a_canasta(v)).pack(side="right")
+            # Botones para ver la descripción del vehículo y agregarlo a la canasta
+
+        tk.Button(self.root, text="Volver", command=self.mostrar_pantalla_principal).pack(pady=20)
+        tk.Button(barra_accion, text="Información tienda", command=self.ver_informacion_tienda).pack(side="left", padx=20, pady=10)
+
+
+    def ver_autos(self):
+        self.limpiar_ventana()
+        # Crear una barra de acción con botones para seleccionar una tienda
+        barra_accion = tk.Frame(self.root, bg="#d9d9d9", height=50)
+        barra_accion.pack(fill="x")
+
+        # Crear botones dinámicamente para cada tienda disponible
+        for nombre_tienda in datos["tiendas"]:
+            nombre_visible = datos["tiendas"][nombre_tienda].get("nombre", nombre_tienda)
+            # Botón que filtra los autos por tienda seleccionada
+            tk.Button(barra_accion,text=nombre_visible,command=lambda tienda=nombre_tienda: self.filtrar_por_tienda(tienda, "ver_autos")).pack(side="left", padx=10, pady=10)
+
+        # Título que indica que se están mostrando los autos disponibles
+        tk.Label(self.root, text="Autos disponibles", font=("Arial", 16)).pack(pady=20)
+
+        # Si se ha seleccionado una tienda, mostrar los vehículos de esa tienda
+        if self.tienda_seleccionada and self.tienda_seleccionada in datos["tiendas"]:
+            tienda = datos["tiendas"][self.tienda_seleccionada]
+
+            # Función que muestra la información de la tienda seleccionada
+            def mostrar_info_tienda():
+                info = f"Nombre: {tienda.get('nombre', '')}\n" \
+                    f"Dirección: {tienda.get('direccion', '')}\n" \
+                    f"Teléfono: {tienda.get('telefono', '')}"
+                messagebox.showinfo("Información de la tienda", info)
+
+            # Botón para mostrar la información de la tienda
+            tk.Button(self.root, text="Información tienda", command=mostrar_info_tienda).pack(pady=5)
+
+            # Mostrar los vehículos de la tienda
+            for vehiculo in tienda.get("vehiculos", []):
+                frame = tk.Frame(self.root, relief="solid", borderwidth=1)
+                frame.pack(pady=5, padx=10, fill="x")
+
+                # Información del vehículo (marca, modelo, precio)
+                tk.Label(frame, text=f"{vehiculo['marca']} {vehiculo['modelo']} - ${vehiculo['precio']}").pack(side="left", padx=10)
+                # Botones para ver la descripción del vehículo y agregarlo a la canasta
+                tk.Button(frame, text="Descripción", command=lambda v=vehiculo: self.mostrar_descripcion(v)).pack(side="right")
+                tk.Button(frame, text="Agregar a canasta", command=lambda v=vehiculo: self.agregar_a_canasta(v)).pack(side="right")
+        else:
+            # Si no se ha seleccionado una tienda, mostrar mensaje informativo
+            tk.Label(self.root, text="Selecciona una tienda para ver los vehículos.", font=("Arial", 12)).pack(pady=10)
+
+        # Botón para volver a la pantalla principal
+        tk.Button(self.root, text="Volver", command=self.mostrar_pantalla_principal).pack(pady=20)
+
+
+    def gestionar_vehiculos(self):
+        self.limpiar_ventana()
+
+        # Crear una barra de acción con botones para seleccionar una tienda
+        barra_accion = tk.Frame(self.root, bg="#d9d9d9", height=50)
+        barra_accion.pack(fill="x")
+
+        # Crear botones dinámicamente para cada tienda disponible
+        for nombre_tienda in datos["tiendas"]:
+            nombre_visible = datos["tiendas"][nombre_tienda].get("nombre", nombre_tienda)
+            # Botón que filtra los vehículos por tienda seleccionada
+            tk.Button(barra_accion,text=nombre_visible,command=lambda tienda=nombre_tienda: self.filtrar_por_tienda(tienda, "gestionar_vehiculos")).pack(side="left", padx=10, pady=10)
+
+        # Título de la vista de gestión de vehículos
+        tk.Label(self.root, text="Gestión de vehículos", font=("Arial", 14)).pack(pady=10)
+
+        # Si se ha seleccionado una tienda, mostrar sus vehículos
+        if self.tienda_seleccionada and self.tienda_seleccionada in datos["tiendas"]:
+            tienda = datos["tiendas"][self.tienda_seleccionada]
+            # Mostrar los vehículos disponibles en la tienda
+            for vehiculo in tienda.get("vehiculos", []):
+                if all(k in vehiculo for k in ["marca", "modelo", "precio"]):
+                    frame = tk.Frame(self.root, relief="solid", borderwidth=1)
+                    frame.pack(pady=5, padx=10, fill="x")
+                    # Información del vehículo
+                    tk.Label(frame, text=f"{vehiculo['marca']} {vehiculo['modelo']} - ${vehiculo['precio']}").pack(side="left", padx=10)
+                    # Botones para editar y eliminar el vehículo
+                    tk.Button(frame, text="Editar", command=lambda v=vehiculo: self.editar_vehiculo(v)).pack(side="right")
+                    tk.Button(frame, text="Eliminar", command=lambda v=vehiculo: self.eliminar_vehiculo(v)).pack(side="right")
+
+            tk.Button(self.root, text="Agregar vehículo", command=self.agregar_vehiculo).pack(pady=10)
+            tk.Button(self.root, text="Volver", command=self.mostrar_pantalla_principal).pack(pady=5)
+        else:
+            tk.Label(self.root, text="Selecciona una tienda para gestionar los vehículos.", font=("Arial", 12)).pack(pady=10)
+
+    
+    def filtrar_por_tienda(self, tienda, vista):
+        self.tienda_seleccionada = tienda
+        self.limpiar_ventana()  # ← Esta línea es CLAVE para actualizar correctamente
+
+        if vista == "ver_autos":
+            self.ver_autos()
+        elif vista == "gestionar_vehiculos":
+            self.gestionar_vehiculos()
+
+
+    def ver_usuarios(self):
+        
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Gestión de usuarios", font=("Arial", 14)).pack(pady=10)
+
+        # Recorrer todos los usuarios almacenados en los datos
+        for usuario_id, usuario in datos["usuarios"].items():
+            # Crear un marco (frame) para cada usuario en la lista
+            frame = tk.Frame(self.root, relief="solid", borderwidth=1)
+            frame.pack(pady=5, padx=10, fill="x")
+            # Crear la información que se mostrará en el marco para cada usuario (nombre y tipo de usuario)
+            info = f"{usuario['nombre']} - {'Admin' if usuario['es_admin'] else 'Usuario'}"
+            tk.Label(frame, text=info).pack(side="left", padx=10)
+
+            # Botón para editar los datos del usuario
+            tk.Button(frame, text="Editar", command=lambda u=usuario_id: self.editar_usuario(u)).pack(side="right", padx=5)
+            if usuario_id != "admin":
+                tk.Button(frame, text="Eliminar", command=lambda u=usuario_id: self.eliminar_usuario(u)).pack(side="right")
+
+        tk.Button(self.root, text="Agregar usuario", command=self.agregar_usuario).pack(pady=10)
+        tk.Button(self.root, text="Volver", command=self.mostrar_pantalla_principal).pack()
+    
+ 
+    def editar_usuario(self, usuario_id):
+        # Obtener los datos del usuario que se desea editar
+        usuario = datos["usuarios"][usuario_id]
+        self.limpiar_ventana()
+        # Título para indicar que estamos editando a un usuario específico
+        tk.Label(self.root, text=f"Editar usuario: {usuario['nombre']}", font=("Arial", 14)).pack(pady=10)
+
+        # Crear un diccionario de campos para editar el usuario (nombre, correo, clave y tipo de usuario)
+        campos = {
+            "nombre": tk.StringVar(value=usuario["nombre"]),
+            "correo": tk.StringVar(value=usuario["correo"]),
+            "clave": tk.StringVar(value=usuario["clave"]),
+            "es_admin": tk.BooleanVar(value=usuario["es_admin"])
+        }
+
+        # Crear formularios para cada campo de usuario
+        for campo, var in campos.items():
+            fila = tk.Frame(self.root)
+            fila.pack(pady=2)
+            # Etiqueta que describe el campo a editar
+            tk.Label(fila, text=f"{campo.capitalize()}:", width=15, anchor="w").pack(side="left")
+            # Si el campo es "es_admin", usaremos un Checkbutton, de lo contrario, un Entry
+            if campo == "es_admin":
+                tk.Checkbutton(fila, variable=var).pack(side="left")
+            else:
+                tk.Entry(fila, textvariable=var, width=40).pack(side="left", fill="x")
+
+        # Función para guardar los cambios hechos al usuario
+        def guardar():
+            for k, v in campos.items():
+                # Actualiza los datos del usuario con los valores de los campos editados
+                datos["usuarios"][usuario_id][k] = v.get() if k != "es_admin" else v.get()
+            guardar_datos(datos)
+            self.ver_usuarios()
+
+        tk.Button(self.root, text="Guardar", command=guardar).pack(pady=10)
+        tk.Button(self.root, text="Cancelar", command=self.ver_usuarios).pack()
+
+    def eliminar_usuario(self, usuario_id):
+        self.limpiar_ventana()
+        # Limpiar la ventana antes de mostrar la confirmación de eliminación
+        tk.Label(self.root, text=f"¿Estás seguro que deseas eliminar al usuario {usuario_id}?").pack(pady=10)
+
+        def confirmar():
+            # Verifica si el usuario existe
+            if usuario_id in datos["usuarios"]:
+                # Eliminar el usuario de los datos
+                del datos["usuarios"][usuario_id]
+                guardar_datos(datos)  # Guarda los datos actualizados
+                self.ver_usuarios()  # Actualiza la pantalla de usuarios
+            else:
+                tk.Label(self.root, text="El usuario no se encuentra en la lista.").pack(pady=10)
+
+        tk.Button(self.root, text="Confirmar", command=confirmar).pack(pady=10)
+        tk.Button(self.root, text="Cancelar", command=self.ver_usuarios).pack(pady=5)
+
+
+    def agregar_usuario(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Agregar usuario", font=("Arial", 14)).pack(pady=10)
+
+        # Diccionario de campos para ingresar los datos del nuevo usuario
+        campos = {
+            "nombre": tk.StringVar(),
+            "correo": tk.StringVar(),
+            "clave": tk.StringVar(),
+            "es_admin": tk.BooleanVar()
+        }
+
+        # Crear un formulario para cada campo
+        for campo, var in campos.items():
+            fila = tk.Frame(self.root)
+            fila.pack(pady=2)
+            # Etiqueta para describir el campo
+            tk.Label(fila, text=f"{campo.capitalize()}:", width=15, anchor="w").pack(side="left")
+            # Si el campo es "es_admin", se utiliza un Checkbutton, de lo contrario, un Entry
+            if campo == "es_admin":
+                tk.Checkbutton(fila, variable=var).pack(side="left")
+            else:
+                tk.Entry(fila, textvariable=var, width=40).pack(side="left", fill="x")
+
+        def guardar():
+            nombre = campos["nombre"].get().strip().lower()
+            # Verifica que el nombre no esté vacío y que no exista ya un usuario con el mismo nombre
+            if not nombre or nombre in datos["usuarios"]:
+                messagebox.showerror("Error", "nombre de usuario inválido o ya existe.")
+                return
+            # Agrega el nuevo usuario a los datos
+            datos["usuarios"][nombre] = {
+                "nombre": campos["nombre"].get(),
+                "correo": campos["correo"].get(),
+                "clave": campos["clave"].get(),
+                "es_admin": campos["es_admin"].get()
+            }
+            guardar_datos(datos)
+            self.ver_usuarios()
+
+        tk.Button(self.root, text="Guardar", command=guardar).pack(pady=10)
+        tk.Button(self.root, text="Cancelar", command=self.ver_usuarios).pack()
+
+    def mostrar_descripcion(self, vehiculo):
+        # Limpiar la pantalla de la descripción actual
+        self.limpiar_ventana()
+        tk.Label(self.root, text=f"Descipcion {vehiculo['marca']}\n {vehiculo['modelo']}\n", font=("Arial", 14)).pack(pady=10)
+
+
+        # Mostrar la descripción en el área de desplazamiento
+        descripcion = (
+            f"Marca: {vehiculo['marca']}\n"
+            f"Modelo: {vehiculo['modelo']}\n"
+            f"Año: {vehiculo['año']}\n"
+            f"Transmisión: {vehiculo['transmision']}\n"
+            f"Combustible: {vehiculo['combustible']}\n"
+            f"Cilindrada: {vehiculo['cilindrada']}\n"
+            f"Kilometraje: {vehiculo['kilometraje']}\n"
+            f"Puertas: {vehiculo['puertas']}\n"
+            f"Capacidad: {vehiculo['capacidad']}\n"
+            f"Carrocería: {vehiculo['carroceria']}\n"
+            f"Color: {vehiculo['color']}\n"
+        )
+
+        # Mostrar la descripción detallada en la interfaz
+        descripcion_label = tk.Label(self.root, text=descripcion, justify="left", font=("Arial", 10), padx=10, pady=5)
+        descripcion_label.pack(fill="x")
+
+        # Botón para volver a la vista de autos
+        boton_volver = tk.Button(self.root, text="Volver", command=self.ver_autos)
+        boton_volver.pack(pady=5)
+
+
+    def agregar_a_canasta(self, vehiculo):
+        # Agregar el vehículo a la canasta
+        self.canasta.agregar(vehiculo)
+        # Mostrar un mensaje informando que el vehículo fue agregado a la canasta
+        messagebox.showinfo("Éxito", f"Agregado a canasta: {vehiculo['marca']} {vehiculo['modelo']}")
+
+
+    def mostrar_canasta(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Canasta", font=("Arial", 14)).pack(pady=10)
+
+        # Si la canasta está vacía, mostrar un mensaje
+        if not self.canasta.vehiculos:
+            tk.Label(self.root, text="Canasta vacía.").pack(pady=5)
+        else:
+            # Si hay vehículos en la canasta, mostrarlos
+            for vehiculo in self.canasta.vehiculos:
+                tk.Label(self.root, text=f"{vehiculo['marca']} {vehiculo['modelo']} - ${vehiculo['precio']}").pack()
+
+        tk.Button(self.root, text="Volver", command=self.mostrar_pantalla_principal).pack(pady=10)
+
+
+    def eliminar_vehiculo(self, vehiculo):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="¿Estás seguro que deseas eliminar este vehículo?").pack(pady=10)
+
+        # Función para confirmar la eliminación del vehículo
+        def confirmar():
+            tienda = datos["tiendas"].get(self.tienda_seleccionada)  # Obtén la tienda seleccionada
+
+            if tienda:  # Verifica que la tienda existe
+                try:
+                    # Eliminar el vehículo de la lista de vehículos de la tienda seleccionada
+                    tienda["vehiculos"].remove(vehiculo)
+                    guardar_datos(datos)  # Guarda los datos actualizados
+                    self.gestionar_vehiculos()  # Actualiza la pantalla de gestión de vehículos
+                except ValueError:
+                    # Si no se encuentra el vehículo en la lista, muestra un mensaje de error
+                    tk.Label(self.root, text="El vehículo no se encuentra en la lista.").pack(pady=10)
+            else:
+                tk.Label(self.root, text="No se ha seleccionado una tienda válida.").pack(pady=10)
+
+        tk.Button(self.root, text="Confirmar", command=confirmar).pack(pady=10)
+        tk.Button(self.root, text="Cancelar", command=self.gestionar_vehiculos).pack(pady=5)
+
+    def agregar_vehiculo(self):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Agregar vehículo", font=("Arial", 14)).pack(pady=10)
+
+        # Obtenemos las tiendas disponibles desde los datos
+        tiendas_disponibles = list(datos["tiendas"].keys())
+        # Creamos una variable para guardar la tienda seleccionada
+        tienda_seleccionada_var = tk.StringVar()
+        tienda_seleccionada_var.set(tiendas_disponibles[0])  # Valor por defecto
+
+
+        # Creamos un marco para la tienda y añadimos el label y el desplegable
+        frame_tienda = tk.Frame(self.root)
+        frame_tienda.pack(pady=5)
+        tk.Label(frame_tienda, text="Seleccionar tienda:", width=15, anchor="w").pack(side="left")
+        tk.OptionMenu(frame_tienda, tienda_seleccionada_var, *tiendas_disponibles).pack(side="left", fill="x")
+
+        # Creamos un diccionario de campos para el vehículo y sus variables de entrada
+        campos = {campo: tk.StringVar() for campo in [
+            "Marca", "Modelo", "Precio",  "Año", "Transmision", "Combustible",
+            "Cilindrada", "Kilometraje", "Puertas", "Capacidad", "Carroceria", "Color"
+        ]}
+
+        for campo, var in campos.items():
+            fila = tk.Frame(self.root)
+            fila.pack(pady=2)
+            tk.Label(fila, text=f"{campo}:", width=15, anchor="w").pack(side="left")
+            tk.Entry(fila, textvariable=var, width=40).pack(side="left", fill="x")
+
+        # Función que se ejecutará al presionar el botón "Guardar vehículo"
+        def guardar():
+            nuevo_vehiculo = {}
+            # Iteramos sobre los campos, tomando el valor de cada uno
+            for campo_original, var in campos.items():
+                campo = campo_original.lower()# Convertimos la clave a minúscula para consistencia
+                valor = var.get().strip()# Obtenemos el valor, eliminando espacios en blanco
+                if not valor:# Si el campo está vacío, mostramos un error
+                    messagebox.showerror("Error", f"El campo '{campo_original}' no puede estar vacío.")
+                    return
+                # Validamos campos numéricos como precio, puertas, capacidad y año
+                if campo in ["precio", "puertas", "capacidad", "año"]:
+                    if not valor.isdigit():# Si no es un número, mostramos un error
+                        messagebox.showerror("Error", f"El campo '{campo_original}' debe ser un número.")
+                        return
+                    if campo == "año":# El campo 'año' se convierte a entero
+                        nuevo_vehiculo["año"] = int(valor)
+                    else:
+                        nuevo_vehiculo[campo] = int(valor)
+
+                # Validación para la cilindrada, que debe ser un número seguido de "L"
+                
+                elif campo == "cilindrada":
+                    try:
+                        float(valor.replace("L", "").strip())# Intentamos convertirlo a float
+                        if not valor.endswith("L"):# Si no termina con "L", lo añadimos
+                            valor = valor.replace("L", "").strip() + "L"
+                        nuevo_vehiculo[campo] = valor
+                    except ValueError:# Si no es un número válido, mostramos un error
+                        messagebox.showerror("Error", "Cilindrada debe ser un número (ej. 1.6L)")
+                        return
+                # Validación para kilometraje, que debe ser un número seguido de " km"
+                elif campo == "kilometraje":
+                    try:
+                        int(valor.replace("km", "").replace(" ", ""))# Intentamos convertirlo a int
+                        if not valor.endswith("km"): # Si no termina con "km", lo añadimos
+                            valor = valor.replace("km", "").replace(" ", "") + " km"
+                        nuevo_vehiculo[campo] = valor
+                    except ValueError:# Si no es un número válido, mostramos un error
+                        messagebox.showerror("Error", "kilometraje debe ser un número seguido de ' km'")
+                        return
+                # Validación para los campos que solo deben contener letras (Marca, Modelo, etc.)
+                else:
+                    if not re.fullmatch(r"[A-Za-zÁÉÍÓÚÑáéíóúñ ]+", valor):
+                        messagebox.showerror("Error", f"el campo '{campo_original}' solo debe contener letras.")
+                        return
+                    nuevo_vehiculo[campo] = valor
+            # Obtenemos la tienda seleccionada desde el desplegable
+            tienda_destino = tienda_seleccionada_var.get()
+            # Verificamos si la tienda existe en los datos
+            if tienda_destino in datos["tiendas"]:
+                # Añadimos el vehículo a la tienda seleccionada
+                datos["tiendas"][tienda_destino]["vehiculos"].append(nuevo_vehiculo)
+                guardar_datos(datos)# Guardamos los cambios
+                self.gestionar_vehiculos()  # Actualizamos la pantalla de vehículos
+            else:
+                messagebox.showerror("Error", "Tienda no válida.")  # Si la tienda no es válida, mostramos un error
+
+        # Botón para guardar el vehículo
+        tk.Button(self.root, text="Guardar vehículo", command=guardar).pack(pady=10)
+        # Botón para volver a la pantalla de gestión de vehículos sin guardar cambios
+        tk.Button(self.root, text="Volver", command=self.gestionar_vehiculos).pack(pady=5)
+
+
+    def editar_vehiculo(self, vehiculo):
+        self.limpiar_ventana()
+        tk.Label(self.root, text="Editar vehículo", font=("Arial", 14)).pack(pady=10)
+
+        # Título de la ventana para editar un vehículo
+
+        tiendas_disponibles = list(datos["tiendas"].keys())
+
+        # Buscar la tienda actual a la que pertenece el vehículo
+        tienda_actual = None
+        for tienda_nombre, tienda_info in datos["tiendas"].items():
+            if vehiculo in tienda_info["vehiculos"]:
+                tienda_actual = tienda_nombre
+                break
+
+        # Creamos un StringVar para la tienda seleccionada y le asignamos la tienda actual si existe
+        
+        tienda_seleccionada_var = tk.StringVar()
+        tienda_seleccionada_var.set(tienda_actual if tienda_actual else tiendas_disponibles[0])
+
+        # Creamos un marco para la tienda y añadimos el label y el desplegable
+        frame_tienda = tk.Frame(self.root)
+        frame_tienda.pack(pady=5)
+        tk.Label(frame_tienda, text="Seleccionar tienda:", width=15, anchor="w").pack(side="left")
+        tk.OptionMenu(frame_tienda, tienda_seleccionada_var, *tiendas_disponibles).pack(side="left")
+
+        # Definimos las claves que estarán en los campos del vehículo
+        claves_originales = [
+            "Marca", "Modelo", "Precio", "Año", "Transmision", "Combustible",
+            "Cilindrada", "Kilometraje", "Puertas", "Capacidad", "Carroceria", "Color"
+        ]
+        # Creamos un diccionario para los campos del vehículo, con el valor actual de cada uno
+        campos = {}
+        for clave_original in claves_originales:
+            clave = clave_original.lower()
+            campos[clave_original] = tk.StringVar(self.root, value=str(vehiculo.get(clave, "")))
+
+        # Creamos un formulario similar al de agregar vehículo, pero con valores preexistentes
+        for clave_original, var in campos.items():
+            fila = tk.Frame(self.root)
+            fila.pack(pady=2)
+            tk.Label(fila, text=f"{clave_original}:", width=15, anchor="w").pack(side="left")
+            tk.Entry(fila, textvariable=var, width=40).pack(side="left", fill="x")
+
+        # Función para guardar los cambios del vehículo editado
+        def guardar_cambios():
+            for clave_original, var in campos.items():
+                clave = clave_original.lower()
+                valor = var.get().strip()
+                if not valor:
+                    messagebox.showerror("Error", f"el campo '{clave_original}' no puede estar vacío.")
+                    return
+                if clave in ["precio", "puertas", "capacidad", "año"]:
+                    if not valor.isdigit():
+                        messagebox.showerror("Error", f"el campo '{clave_original}' debe ser un número.")
+                        return
+                    vehiculo[clave] = int(valor)
+                elif clave == "cilindrada":
+                    try:
+                        float(valor.replace("L", "").strip())
+                        if not valor.endswith("L"):
+                            valor = valor.replace("L", "").strip() + "L"
+                        vehiculo[clave] = valor
+                    except ValueError:
+                        messagebox.showerror("Error", "cilindrada debe tener formato numérico, ej: 1.6L")
+                        return
+                elif clave == "kilometraje":
+                    try:
+                        int(valor.replace("km", "").replace(" ", ""))
+                        if not valor.endswith("km"):
+                            valor = valor.replace("km", "").replace(" ", "") + " km"
+                        vehiculo[clave] = valor
+                    except ValueError:
+                        messagebox.showerror("Error", "kilometraje debe ser un número seguido de ' km'")
+                        return
+                else:
+                    if not re.fullmatch(r"[A-Za-zÁÉÍÓÚÑáéíóúñ ]+", valor):
+                        messagebox.showerror("Error", f"el campo '{clave_original}' solo debe contener letras.")
+                        return
+                    vehiculo[clave] = valor
+
+            # Obtenemos la nueva tienda seleccionada
+            nueva_tienda = tienda_seleccionada_var.get()
+            
+            # Si la tienda ha cambiado, movemos el vehículo a la nueva tienda
+            if nueva_tienda != tienda_actual:
+                if tienda_actual and vehiculo in datos["tiendas"][tienda_actual]["vehiculos"]:
+                    datos["tiendas"][tienda_actual]["vehiculos"].remove(vehiculo)
+                datos["tiendas"][nueva_tienda]["vehiculos"].append(vehiculo)
+
+            guardar_datos(datos)# Guardamos los cambios
+            self.gestionar_vehiculos()
+
+        tk.Button(self.root, text="Guardar cambios", command=guardar_cambios).pack(pady=10)
+        tk.Button(self.root, text="Cancelar", command=self.gestionar_vehiculos).pack()
+
+
+# Ejecutar aplicación
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("RentAuto")
+    root.geometry("500x500")
+    app = InterfazUsuario(root)
+    root.mainloop()
