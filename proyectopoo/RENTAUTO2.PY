@@ -2,7 +2,7 @@ import tkinter as tk #Biblioteca para crear interfaces gráficas en Python.
 from tkinter import messagebox, StringVar #Para mostrar mensajes emergentes como alertas o confirmaciones.
 
 #Clase de tkinterpara manejar variables de texto en la interfaz.
-import smtplib #Para enviar correos electrónicos utilizando el protocolo SMTP.
+import smtplib #Para enviar correos electrónicos utilizando el protocolo SMTP.e
 
 #Para construir mensajes de correo con texto y múltiples partes.
 from email.mime.text import MIMEText
